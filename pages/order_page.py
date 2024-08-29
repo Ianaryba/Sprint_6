@@ -1,94 +1,90 @@
-from selenium import webdriver
-from selenium.webdriver import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.select import Select
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-from locators.home_page__locators import ORDER_NAME, ORDER_LAST_NAME, ORDER_ADDRESS, ORDER_PHONE_NUMBER, ORDER_METRO, \
-    ORDER_NEXT_BUTTON, ORDER_WHEN, ORDER_HOW_LONG, ORDER_COMMENT, ORDER_COMPLETE, SCOOTER_COLOR_BLACK, \
-    SCOOTER_COLOR_GRAY, ORDER_CONFIRMATION_BUTTON, MESSAGE_ABOUT_SUCCESSFUL_ORDER_CREATION, WATCH_STATUS_BUTTON, \
-    YANDEX_LOGO, SCOOTER_LOGO
+import allure
+import generators
+from locators.order_page_locators import OrderPageLocators, Flags
+from pages.base_page import BasePage
 
 
-class Orderpagescooter:
+class OrderPage(BasePage):
 
-    def __init__(self, driver):
-        self.driver = driver
+    @allure.step('Заполнение поля "Имя"')
+    def set_name(self):
+        name = generators.generate_name()
+        self.set_text_to_element(OrderPageLocators.INPUT_FIELD_NAME, name)
 
-    def wait_for_load_order_page(self):
+    @allure.step('Заполнение поля "Фамилия"')
+    def set_surname(self):
+        surname = generators.generate_surname()
+        self.set_text_to_element(OrderPageLocators.INPUT_FIELD_SURNAME, surname)
 
-        WebDriverWait(self.driver, 10).until(
-            expected_conditions.visibility_of_element_located((By.XPATH ,ORDER_NEXT_BUTTON)))
-    def set_name(self, name):
-        self.driver.find_element(By.XPATH , ORDER_NAME).send_keys(name)
+    @allure.step('Заполнение поля "Адрес доставки"')
+    def set_address(self):
+        address = generators.generate_address()
+        self.set_text_to_element(OrderPageLocators.INPUT_FIELD_ADDRESS, address)
 
-    def set_last_name(self, last_name):
-        self.driver.find_element(By.XPATH ,ORDER_LAST_NAME).send_keys(last_name)
+    @allure.step('Выбор станции метро')
+    def select_metro_station(self):
+        metro_station = generators.generate_station()
+        self.click_on_element(OrderPageLocators.INPUT_FIELD_METRO_STATION)
+        locator = self.reformate_locator(OrderPageLocators.STATION_DROP_DOWN, metro_station)
+        self.click_on_element(locator)
 
-    def set_address(self, address):
-        self.driver.find_element(By.XPATH ,ORDER_ADDRESS).send_keys(address)
+    @allure.step('Заполнение поля "Номер телефона"')
+    def set_phone(self):
+        phone = generators.generate_phone()
+        self.set_text_to_element(OrderPageLocators.INPUT_FIELD_PHONE, phone)
 
-    def set_phone_number(self, phone_number):
-        self.driver.find_element(By.XPATH ,ORDER_PHONE_NUMBER).send_keys(phone_number)
+    @allure.step('Заполняем поля "Для кого самокат"')
+    def set_data_for_whom_scooter(self):
+        self.set_name()
+        self.set_surname()
+        self.set_address()
+        self.select_metro_station()
+        self.set_phone()
 
-    def set_metro(self, metro):
-        self.driver.find_element(By.XPATH, ORDER_METRO).click()
-        self.driver.find_element(By.XPATH, f"//button[starts-with(@class, 'Order_SelectOption')]/div[text()='{metro}']").click()
-
+    @allure.step('Нажимаем кнопку "Далее"')
     def click_next_button(self):
-        self.driver.find_element(By.XPATH ,ORDER_NEXT_BUTTON).click()
+        self.click_on_element(OrderPageLocators.NEXT_BUTTON)
 
-    def set_when_order(self, when_order):
+    @allure.step('Выбираем дату доставки самоката')
+    def set_date(self, date):
+        self.set_text_to_element(OrderPageLocators.INPUT_FIELD_DATE, date)
+        self.click_on_element(OrderPageLocators.TITLE)
 
-        element = self.driver.find_element(By.XPATH ,ORDER_WHEN)
-        element.send_keys(when_order)
-        element.send_keys(Keys.ENTER)
+    @allure.step('Выбираем срок аренды самоката')
+    def select_rental_period(self):
+        rental_period = generators.generate_rental_period()
+        self.click_on_element(OrderPageLocators.RENTAL_PERIOD_DD)
+        locator = self.reformate_locator(OrderPageLocators.RENTAL_PERIOD_BUTTON_IN_DD, rental_period)
+        self.click_on_element(locator)
 
+    @allure.step('Выбор цвета самоката')
+    def select_color(self):
+        color = generators.generate_color()
+        locator = self.reformate_locator(OrderPageLocators.INPUT_FIELD_COLOR, color)
+        self.click_on_element(locator)
 
-    def set_how_long(self, how_long):
-        element = WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, ORDER_HOW_LONG)))
-        element.click()
+    @allure.step('Заполнение поля "Комментарий"')
+    def set_comment(self):
+        comment = generators.generate_comment()
+        self.set_text_to_element(OrderPageLocators.INPUT_FIELD_COMMENT, comment)
 
+    @allure.step('Заполняем поля "Про Аренду"')
+    def set_data_about_rent(self, date):
+        self.set_date(date)
+        self.select_rental_period()
+        self.select_color()
+        self.set_comment()
 
-        element = WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, f"//div[@class='Dropdown-option'][text()='{how_long}']")))
-        element.click()
+    @allure.step('Нажатие на кнопку "Заказать" и подтверждение заказа')
+    def click_on_order_then_confirm_button(self):
+        self.click_on_element(OrderPageLocators.ORDER_BUTTON)
+        self.click_on_element(OrderPageLocators.CONFIRM_BUTTON)
 
+    @allure.step('Проверка успешного оформления заказа')
+    def check_order_is_done(self):
+        result = self.get_text_from_element(OrderPageLocators.ORDER_STATUS_BUTTON)
+        return result == Flags.SUCCESSFUL_ORDER_FLAG
 
-    def set_scooter_color_black(self):
-        self.driver.find_element(By.CSS_SELECTOR , SCOOTER_COLOR_BLACK).click()
-
-    def set_scooter_color_gray(self):
-        self.driver.find_element(By.CSS_SELECTOR, SCOOTER_COLOR_GRAY).click()
-
-    def set_comment(self, comment):
-        self.driver.find_element(By.XPATH ,ORDER_COMMENT).send_keys(comment)
-
-    def click_order_button(self):
-        self.driver.find_element(By.XPATH ,ORDER_COMPLETE).click()
-
-    def click_order_confirmation(self):
-        WebDriverWait(self.driver, 10).until(
-            expected_conditions.visibility_of_element_located((By.XPATH, ORDER_CONFIRMATION_BUTTON))).click()
-
-
-    def message_about_successful_order_creation(self):
-
-        return self.driver.find_element(By.XPATH, MESSAGE_ABOUT_SUCCESSFUL_ORDER_CREATION).text
-
-    def click_watch_status_button(self):
-        self.driver.find_element(By.XPATH, WATCH_STATUS_BUTTON).click()
-
-    def click_yandex_logo(self):
-
-        self.driver.find_element(By.XPATH, YANDEX_LOGO).click()
-
-    def click_scooter_logo(self):
-        self.driver.find_element(By.XPATH, SCOOTER_LOGO).click()
-
-
-
-
+    @allure.step('Клик на логотип Самокат в шапке')
+    def click_on_logo_scooter(self):
+        self.click_on_element(OrderPageLocators.LOGO_SCOOTER)
